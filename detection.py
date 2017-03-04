@@ -51,7 +51,7 @@ def color_hist(img, nbins=32, bins_range=(0, 256)):
 def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
                      hist_bins=32, orient=9,
                      pix_per_cell=8, cell_per_block=2, hog_channel=0,
-                     spatial_feat=True, hist_feat=True, hog_feat=True, hist_bins_range=(0, 256)):
+                     spatial_feat=True, hist_feat=True, hog_feat=True, hist_bins_range=(0, 255)):
     # Create a list to append feature vectors to
     features = []
     # Iterate through the list of images
@@ -71,6 +71,9 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
                 feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
             elif color_space == 'YCrCb':
                 feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+            if hist_bins_range[1] == 1:
+                pass
+                #feature_image = feature_image.astype(np.float32) / 255
         else:
             feature_image = np.copy(image)
 
@@ -197,7 +200,7 @@ def draw_labeled_bboxes(img, labels):
     return img
 
 def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size,
-              hist_bins):
+              hist_bins, hist_bins_range):
     draw_img = np.copy(img)
     img = img.astype(np.float32) / 255 # if JPG
     #img = img.astype(np.float32) # if PNG
@@ -249,7 +252,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
 
             # Get color features
             spatial_features = bin_spatial(subimg, size=spatial_size)
-            hist_features = color_hist(subimg, nbins=hist_bins)
+            hist_features = color_hist(subimg, nbins=hist_bins, bins_range=hist_bins_range)
 
             # Scale features and make a prediction
             test_features = X_scaler.transform(

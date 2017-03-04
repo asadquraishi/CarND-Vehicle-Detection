@@ -124,9 +124,9 @@ def train_classifier_old():
 
     # Reduce the sample size because
     # The quiz evaluator times out after 13s of CPU time
-    #sample_size = 500
-    #cars = cars[0:sample_size]
-    #notcars = notcars[0:sample_size]
+    sample_size = 500
+    cars = cars[0:sample_size]
+    notcars = notcars[0:sample_size]
 
     # Perform feature engineering
     print("Performing feature engineering...")
@@ -259,7 +259,7 @@ def train_classifier():
 if __name__ == '__main__':
 
     # Uncomment the following to retrain the classifier
-    '''svc, X_scaler = train_classifier_old()
+    svc, X_scaler = train_classifier_old()
     data = {
         'svc': svc,
         'scaler': X_scaler,
@@ -270,7 +270,7 @@ if __name__ == '__main__':
         'hist_bins': hist_bins
     }
     with open('svc_pickle.p', 'wb') as f:
-        pickle.dump(data, f)'''
+        pickle.dump(data, f)
 
     with open('svc_pickle.p', 'rb') as f:
         dist_pickle = pickle.load(f)
@@ -308,9 +308,28 @@ if __name__ == '__main__':
     out_img, bbox_list = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size,
                         hist_bins)
 
-    window_img = draw_boxes(draw_image, bbox_list, color=(0, 0, 255), thick=6)
+    #window_img = draw_boxes(draw_image, bbox_list, color=(0, 0, 255), thick=6)
 
+    # Add heat to each box in box list
+    heat = add_heat(heat, bbox_list)
 
+    # Apply threshold to help remove false positives
+    heat = apply_threshold(heat, 1)
 
-    plt.imshow(window_img)
+    # Visualize the heatmap when displaying
+    heatmap = np.clip(heat, 0, 255)
+
+    # Find final boxes from heatmap using label function
+    labels = label(heatmap)
+    draw_img = draw_labeled_bboxes(np.copy(image), labels)
+
+    fig = plt.figure()
+    plt.subplot(121)
+    plt.imshow(draw_img)
+    plt.title('Car Positions')
+    plt.subplot(122)
+    plt.imshow(heatmap, cmap='hot')
+    plt.title('Heat Map')
+    fig.tight_layout()
+    #plt.imshow(window_img)
     plt.show()
