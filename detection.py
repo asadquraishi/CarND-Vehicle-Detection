@@ -2,6 +2,12 @@ import matplotlib.image as mpimg
 import numpy as np
 import cv2
 from skimage.feature import hog
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import LinearSVC
+from sklearn.cross_validation import train_test_split
+import glob
+import time
+
 
 
 # Define a function to return HOG features and visualization
@@ -71,9 +77,6 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
                 feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
             elif color_space == 'YCrCb':
                 feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
-            #if hist_bins_range[1] == 1:
-            #    pass
-                #feature_image = feature_image.astype(np.float32) / 255
         else:
             feature_image = np.copy(image)
 
@@ -107,7 +110,7 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
 # start and stop positions in both x and y,
 # window size (x and y dimensions),
 # and overlap fraction (for both x and y)
-def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
+'''def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
                  xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
     # If x and/or y start/stop positions not defined, set to image size
     if x_start_stop[0] == None:
@@ -146,7 +149,7 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
             # Append window position to list
             window_list.append(((startx, starty), (endx, endy)))
     # Return the list of windows
-    return window_list
+    return window_list'''
 
 
 # Define a function to draw bounding boxes
@@ -269,3 +272,61 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
                 bbox = ((xbox_left, ytop_draw + ystart), (xbox_left + win_draw, ytop_draw + win_draw + ystart))
                 window_list.append(bbox)
     return draw_img, window_list
+
+def train_classifier(color_space='RGB', spatial_size=(32, 32), hist_bins=32, orient=9, pix_per_cell=8, cell_per_block=2, hog_channel='ALL', spatial_feat=True, hist_feat=True, hog_feat=True):
+    car1 = glob.glob('vehicles/GTI*/*.png')
+    car2 = glob.glob('vehicles/KITTI*/*.png')
+    noncar1 = glob.glob('non-vehicles/GTI/*.png')
+    noncar2 = glob.glob('non-vehicles/Extras/*.png')
+    cars = car1 + car2
+    notcars =  noncar1 + noncar2
+
+    # Reduce the sample size because
+    # The quiz evaluator times out after 13s of CPU time
+    '''sample_size = 500
+    cars = cars[0:sample_size]
+    notcars = notcars[0:sample_size]'''
+
+    # Perform feature engineering
+    print("Performing feature engineering...")
+    print("Extracting car features.")
+    car_features = extract_features(cars, color_space=color_space,
+                                    spatial_size=spatial_size, hist_bins=hist_bins,
+                                    orient=orient, pix_per_cell=pix_per_cell,
+                                    cell_per_block=cell_per_block,
+                                    hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                    hist_feat=hist_feat, hog_feat=hog_feat)
+    print("Extracting non-car features.")
+    notcar_features = extract_features(notcars, color_space=color_space,
+                                       spatial_size=spatial_size, hist_bins=hist_bins,
+                                       orient=orient, pix_per_cell=pix_per_cell,
+                                       cell_per_block=cell_per_block,
+                                       hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                       hist_feat=hist_feat, hog_feat=hog_feat)
+
+    X = np.vstack((car_features, notcar_features)).astype(np.float64)
+    # Fit a per-column scaler
+    X_scaler = StandardScaler().fit(X)
+    # Apply the scaler to X
+    scaled_X = X_scaler.transform(X)
+
+    # Define the labels vector
+    y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
+
+    # Split up data into randomized training and test sets
+    rand_state = np.random.randint(0, 100)
+    X_train, X_test, y_train, y_test = train_test_split(scaled_X, y, test_size=0.2, random_state=rand_state)
+
+    print('Using:', orient, 'orientations', pix_per_cell,
+          'pixels per cell and', cell_per_block, 'cells per block')
+    print('Feature vector length:', len(X_train[0]))
+    # Use a linear SVC
+    svc = LinearSVC()
+    # Check the training time for the SVC
+    t = time.time()
+    svc.fit(X_train, y_train)
+    t2 = time.time()
+    print(round(t2 - t, 2), 'Seconds to train SVC...')
+    # Check the score of the SVC
+    print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
+    return svc, X_scaler
