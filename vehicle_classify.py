@@ -14,8 +14,7 @@ from lesson_functions import *
 # for scikit-learn >= 0.18 use:
 # from sklearn.model_selection import train_test_split
 from sklearn.cross_validation import train_test_split
-
-
+from sklearn.utils import shuffle
 
 # Define a function to extract features from a single image window
 # This function is very similar to extract_features()
