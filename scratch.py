@@ -128,18 +128,22 @@ def train_classifier_old():
     #cars = cars[0:sample_size]
     #notcars = notcars[0:sample_size]
 
+    # Perform feature engineering
+    print("Performing feature engineering...")
+    print("Extracting car features.")
     car_features = extract_features(cars, color_space=color_space,
                                     spatial_size=spatial_size, hist_bins=hist_bins,
                                     orient=orient, pix_per_cell=pix_per_cell,
                                     cell_per_block=cell_per_block,
                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                    hist_feat=hist_feat, hog_feat=hog_feat)
+                                    hist_feat=hist_feat, hog_feat=hog_feat, hist_bins_range=(0, 1))
+    print("Extracting non-car features.")
     notcar_features = extract_features(notcars, color_space=color_space,
                                        spatial_size=spatial_size, hist_bins=hist_bins,
                                        orient=orient, pix_per_cell=pix_per_cell,
                                        cell_per_block=cell_per_block,
                                        hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                       hist_feat=hist_feat, hog_feat=hog_feat)
+                                       hist_feat=hist_feat, hog_feat=hog_feat, hist_bins_range=(0, 1))
 
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
     # Fit a per-column scaler
@@ -250,36 +254,12 @@ def train_classifier():
     print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
     # Check the prediction time for a single sample
     t = time.time()
-    return svc
+    return svc,  # note that I would need to return the train scalar
 
 if __name__ == '__main__':
-    '''try:
-        #with open('svc_pickle.p', 'rb') as f:
-        #    dist_pickle = pickle.load(f)
-        f = open('svc_pickle.p', 'rb')
-        dist_pickle = pickle.load(f)
-        svc = dist_pickle["svc"]
-        X_scaler = dist_pickle["scaler"]
-        orient = dist_pickle["orient"]
-        pix_per_cell = dist_pickle["pix_per_cell"]
-        cell_per_block = dist_pickle["cell_per_block"]
-        spatial_size = dist_pickle["spatial_size"]
-        hist_bins = dist_pickle["hist_bins"]
-    except:
-        svc = train_classifier_old()
-        data = {
-            'svc': 'svc',
-            'scaler': StandardScaler(),
-            'orient': orient,
-            'pix_per_cell': pix_per_cell,
-            'cell_per_block': cell_per_block,
-            'spatial_size': spatial_size,
-            'hist_bins': hist_bins
-        }
-        with open('svc_pickle.p', 'wb') as f:
-            pickle.dump(data, f)'''
 
-    svc, X_scaler = train_classifier_old()
+    # Uncomment the following to retrain the classifier
+    '''svc, X_scaler = train_classifier_old()
     data = {
         'svc': svc,
         'scaler': X_scaler,
@@ -290,7 +270,7 @@ if __name__ == '__main__':
         'hist_bins': hist_bins
     }
     with open('svc_pickle.p', 'wb') as f:
-        pickle.dump(data, f)
+        pickle.dump(data, f)'''
 
     with open('svc_pickle.p', 'rb') as f:
         dist_pickle = pickle.load(f)
@@ -321,82 +301,16 @@ if __name__ == '__main__':
     plt.imshow(window_img)
     plt.show()'''
 
-
-    def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size,
-                  hist_bins):
-        draw_img = np.copy(img)
-        img = img.astype(np.float32) / 255 # if JPG
-        #img = img.astype(np.float32) # if PNG
-
-        img_tosearch = img[ystart:ystop, :, :]
-        ctrans_tosearch = convert_color(img_tosearch, conv='RGB2YCrCb')
-        if scale != 1:
-            imshape = ctrans_tosearch.shape
-            print(imshape)
-            ctrans_tosearch = cv2.resize(ctrans_tosearch, (np.int(imshape[1] / scale), np.int(imshape[0] / scale)))
-
-        ch1 = ctrans_tosearch[:, :, 0]
-        ch2 = ctrans_tosearch[:, :, 1]
-        ch3 = ctrans_tosearch[:, :, 2]
-
-        # Define blocks and steps as above
-        nxblocks = (ch1.shape[1] // pix_per_cell) - 1
-        nyblocks = (ch1.shape[0] // pix_per_cell) - 1
-        nfeat_per_block = orient * cell_per_block ** 2
-        # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
-        window = 64
-        nblocks_per_window = (window // pix_per_cell) - 1
-        cells_per_step = 2  # Instead of overlap, define how many cells to step
-        nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
-        nysteps = (nyblocks - nblocks_per_window) // cells_per_step
-
-        # Compute individual channel HOG features for the entire image
-        hog1 = get_hog_features(ch1, orient, pix_per_cell, cell_per_block, feature_vec=False)
-        hog2 = get_hog_features(ch2, orient, pix_per_cell, cell_per_block, feature_vec=False)
-        hog3 = get_hog_features(ch3, orient, pix_per_cell, cell_per_block, feature_vec=False)
-
-        for xb in range(nxsteps):
-            for yb in range(nysteps):
-                ypos = yb * cells_per_step
-                xpos = xb * cells_per_step
-                # Extract HOG for this patch
-                hog_feat1 = hog1[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
-                hog_feat2 = hog2[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
-                hog_feat3 = hog3[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
-                hog_features = np.hstack((hog_feat1, hog_feat2, hog_feat3))
-
-                xleft = xpos * pix_per_cell
-                ytop = ypos * pix_per_cell
-
-                # Extract the image patch
-                subimg = cv2.resize(ctrans_tosearch[ytop:ytop + window, xleft:xleft + window], (64, 64))
-
-                # Get color features
-                spatial_features = bin_spatial(subimg, size=spatial_size)
-                hist_features = color_hist(subimg, nbins=hist_bins)
-
-                # Scale features and make a prediction
-                test_features = X_scaler.transform(
-                    np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
-                # test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))
-                test_prediction = svc.predict(test_features)
-
-                if test_prediction == 1:
-                    xbox_left = np.int(xleft * scale)
-                    ytop_draw = np.int(ytop * scale)
-                    win_draw = np.int(window * scale)
-                    cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart),
-                                  (xbox_left + win_draw, ytop_draw + win_draw + ystart), (0, 0, 255), 6)
-
-        return draw_img
-
-
     ystart = 400
     ystop = 656
     scale =1.5
 
-    out_img = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size,
+    out_img, bbox_list = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size,
                         hist_bins)
 
-    plt.imshow(out_img)
+    window_img = draw_boxes(draw_image, bbox_list, color=(0, 0, 255), thick=6)
+
+
+
+    plt.imshow(window_img)
     plt.show()
