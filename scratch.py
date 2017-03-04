@@ -136,14 +136,14 @@ def train_classifier_old():
                                     orient=orient, pix_per_cell=pix_per_cell,
                                     cell_per_block=cell_per_block,
                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                    hist_feat=hist_feat, hog_feat=hog_feat, hist_bins_range=(0, 1))
+                                    hist_feat=hist_feat, hog_feat=hog_feat)
     print("Extracting non-car features.")
     notcar_features = extract_features(notcars, color_space=color_space,
                                        spatial_size=spatial_size, hist_bins=hist_bins,
                                        orient=orient, pix_per_cell=pix_per_cell,
                                        cell_per_block=cell_per_block,
                                        hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                       hist_feat=hist_feat, hog_feat=hog_feat, hist_bins_range=(0, 1))
+                                       hist_feat=hist_feat, hog_feat=hog_feat)
 
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
     # Fit a per-column scaler
