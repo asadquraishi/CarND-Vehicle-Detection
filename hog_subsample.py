@@ -7,16 +7,7 @@ import pickle
 import cv2
 from detection import *
 
-'''dist_pickle = pickle.load(open("svc_pickle.p", "rb"))
-svc = dist_pickle["svc"]
-X_scaler = dist_pickle["scaler"]
-orient = dist_pickle["orient"]
-pix_per_cell = dist_pickle["pix_per_cell"]
-cell_per_block = dist_pickle["cell_per_block"]
-spatial_size = dist_pickle["spatial_size"]
-hist_bins = dist_pickle["hist_bins"]'''
-
-dist_pickle = pickle.load(open("svc_pickle.p", "rb"))
+dist_pickle = pickle.load(open("svc_pickle_try.p", "rb"))
 svc = dist_pickle["svc"]
 X_scaler = dist_pickle["scaler"]
 orient = dist_pickle["orient"]

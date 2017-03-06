@@ -3,9 +3,11 @@ import numpy as np
 import pickle
 import matplotlib
 matplotlib.use('qt5agg')
-from moviepy.editor import VideoFileClip
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
 import time
 from scipy.ndimage.measurements import label
+from math import ceil
 
 color_space = 'YCrCb'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
 orient = 9  # HOG orientations
@@ -23,7 +25,7 @@ heatmaps_threshold = 12
 heatmaps = []
 heatmap_sum = np.zeros((720,1280)).astype(np.float)
 
-def process_video(image):
+def process_image(image):
     global heatmaps, heatmap_sum
     draw_image = np.copy(image)
     heat = np.zeros_like(image[:, :, 0]).astype(np.float)
@@ -40,7 +42,7 @@ def process_video(image):
     heat = add_heat(heat, bbox_list)
 
     # Apply threshold to help remove false positives
-    heat = apply_threshold(heat, 2)
+    heat = apply_threshold(heat, 1)
 
     # Add the heatmap to the heatmap list and the rolling sum
     heatmaps.append(heat)
@@ -50,9 +52,7 @@ def process_video(image):
         heatmap_sum -= old_heatmap
 
     # Visualize the heatmap when displaying
-    # heatmap = np.clip(heat, 0, 255)
     heatmap = np.clip(heatmap_sum, 0, 255)
-
     # Find final boxes from heatmap using label function
     labels = label(heatmap)
     draw_img = draw_labeled_bboxes(draw_image, labels)
@@ -62,6 +62,8 @@ if __name__ == '__main__':
 
     with open('svc_pickle_try.p', 'rb') as f:
         dist_pickle = pickle.load(f)
+    #with open('svc_pickle.p', 'rb') as f:
+    #    dist_pickle = pickle.load(f)
     svc = dist_pickle["svc"]
     X_scaler = dist_pickle["scaler"]
     orient = dist_pickle["orient"]
@@ -70,9 +72,11 @@ if __name__ == '__main__':
     spatial_size = dist_pickle["spatial_size"]
     hist_bins = dist_pickle["hist_bins"]
 
-    # Read in a video
-    file_out = 'project_video_with_vehicle_detection.mp4'
-    file_in = 'project_video.mp4'
-    video_in = VideoFileClip(file_in)
-    video_out = video_in.fl_image(process_video)
-    video_out.write_videofile(file_out, audio=False)
+    for index in range(670,1100):
+        vidcap = cv2.VideoCapture('project_video.mp4')
+        vidcap.set(cv2.CAP_PROP_POS_FRAMES, index)
+        success, image = vidcap.read()
+        new_image = process_image(image)
+        cv2.imshow('img', new_image)
+        cv2.waitKey(1)
+    cv2.destroyAllWindows()
