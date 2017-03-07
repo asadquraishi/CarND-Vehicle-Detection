@@ -116,6 +116,8 @@ The classifier, `LinearSVC`, was trained in the function `train_classifier` in t
 * I then generate the labels and split the data and labels into a training and test set
 * Finally I fit a LinearSVC support vector machine
 
+The training is accomplished in the `train.py` file by commenting out lines 71-82. The classifier is then saved (pickled) and loaded when making predictions. I also use this file when making changes to the sliding window parameters.
+
 ### Sliding Window Search
 
 #### 1\. Describe how (and identify where in your code) you implemented a sliding window search. How did you decide what scales to search and how much to overlap windows?
