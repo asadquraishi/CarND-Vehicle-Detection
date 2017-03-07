@@ -78,5 +78,5 @@ if __name__ == '__main__':
         success, image = vidcap.read()
         new_image = process_image(image)
         cv2.imshow('img', new_image)
-        cv2.waitKey(1)
+        cv2.waitKey(0)
     cv2.destroyAllWindows()

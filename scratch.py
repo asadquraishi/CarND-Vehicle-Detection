@@ -14,13 +14,13 @@ orient = 9  # HOG orientations - since literature suggests not much gain after 9
 pix_per_cell = 8  # HOG pixels per cell
 cell_per_block = 2  # HOG cells per block
 hog_channel = "ALL"  # Can be 0, 1, 2, or "ALL"
-spatial_size = (32, 32)  # Spatial binning dimensions - think (24, 24) may be good
+spatial_size = (24, 24)  # Spatial binning dimensions - think (24, 24) may be good
 hist_bins = 32  # Number of histogram bins
 spatial_feat = True  # Spatial features on or off
 hist_feat = True  # Histogram features on or off
 hog_feat = True  # HOG features on or off
 #y_start_stop = [400, 656]  # Min and max in y to search in slide_window()
-y_start_stop = [400, 500, 656]  # Min and max in y to search in slide_window()
+y_start_stop = [400, 480, 656]  # Min and max in y to search in slide_window()
 
 def process_image(image):
     draw_image = np.copy(image)
@@ -29,8 +29,8 @@ def process_image(image):
     ystart = y_start_stop[0]
     ystop1 = y_start_stop[1]
     ystop2 = y_start_stop[2]
-    scale1 = 0.8
-    scale2 = 1.5
+    '''scale1 = 0.6
+    scale2 = 1.3
 
     out_img1, bbox_list1 = find_cars(image, ystart, ystop1, scale1, svc, X_scaler, orient, pix_per_cell, cell_per_block,
                                    spatial_size,
@@ -40,10 +40,22 @@ def process_image(image):
                                    hist_bins, type='JPG')
 
     # Add heat to each box in box list
-    heat = add_heat(heat, bbox_list1 + bbox_list2)
+    heat = add_heat(heat, bbox_list1 + bbox_list2)'''
+
+    ystart = y_start_stop[0]
+    ystop = y_start_stop[2]
+    scale = 1.5
+
+    out_img, bbox_list = find_cars(image, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block,
+                                     spatial_size,
+                                     hist_bins, type='JPG')
+
+    # Add heat to each box in box list
+    heat = add_heat(heat, bbox_list)
+
 
     # Apply threshold to help remove false positives
-    heat = apply_threshold(heat, 1)
+    heat = apply_threshold(heat, 2)
 
     # Visualize the heatmap when displaying
     heatmap = np.clip(heat, 0, 255)
@@ -88,7 +100,8 @@ if __name__ == '__main__':
         ('1 car off screen, 2nd on', 'test_images/test5.jpg'),
         ('2 cars close more forward', 'test_images/test6.jpg'),
         ('2 cars very close', 'test_images/test7.jpg'),
-        ('1 car close, other forward', 'test_images/test8.jpg')
+        ('1 car close, other forward', 'test_images/test8.jpg'),
+        ('1 car far right and forward', 'test_images/test10.jpg')
     ]
 
     fig, axarray = plt.subplots(ceil(len(image_list) / 2), 2)

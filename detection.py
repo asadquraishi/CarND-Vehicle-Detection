@@ -8,6 +8,31 @@ from sklearn.cross_validation import train_test_split
 import glob
 import time
 
+class Vehicle():
+    def __init__(self):
+        self.detected = False # was the vehicle detected in the last frame
+        self.n_detections = 0 # number of times the vehicle was detected
+        self.n_nondetections = 0 # number of consecutive times the vehicle wasn't detected
+        self.xpixles = None # pixel x values of last detection
+        self.ypixles = None  # pixel y values of last detection
+        self.recent_xfitted = [] # x position of the last n fits of the box - centre
+        self.bestx = None # average x position of the last n fits of the box
+        self.recent_yfitted = [] # y position of the last n fits of the box
+        self.besty = None  # average y position of the last n fits of the box
+        self.recent_wfitted = [] # width of the last n fits of the box
+        self.bestw = None  # average width of the last n fits of the box
+        self.recent_hfitted = []  # height of the last n fits of the box
+        self.besth = None  # average height of the last n fits of the box
+        '''
+        To detect which car look for closeness to the centroid - whichever is closer is that car
+        Then compare the centorid poition
+        If it's > 50% off then use averaged centroid
+            and add this average to the vehicle object
+        Else add the centroid to the object and use the average
+        If width is > 50% - do the same as above
+        If height is > - do the same as above
+        '''
+
 # Define a function to return HOG features and visualization
 def get_hog_features(img, orient, pix_per_cell, cell_per_block,
                      vis=False, feature_vec=True):
@@ -54,7 +79,7 @@ def color_hist(img, nbins=32):
     return hist_features
 
 
-def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
+'''def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
                         hist_bins=32, orient=9,
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
                         spatial_feat=True, hist_feat=True, hog_feat=True):
@@ -99,7 +124,7 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
         img_features.append(hog_features)
 
     # 9) Return concatenated array of features
-    return np.concatenate(img_features)
+    return np.concatenate(img_features)'''
 
 # Define a function to extract features from a list of images
 # Have this function call bin_spatial() and color_hist()
@@ -232,7 +257,7 @@ def find_cars(img, ystart, ystop, scale, svc, X_scaler, orient, pix_per_cell, ce
     # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
     window = 64
     nblocks_per_window = (window // pix_per_cell) - 1
-    cells_per_step = 2  # Instead of overlap, define how many cells to step
+    cells_per_step = 1  # Instead of overlap, define how many cells to step
     nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
     nysteps = (nyblocks - nblocks_per_window) // cells_per_step
 
@@ -287,8 +312,7 @@ def train_classifier(color_space='RGB', spatial_size=(32, 32), hist_bins=32, ori
     cars = car1 + car2
     notcars =  noncar1 + noncar2
 
-    # Reduce the sample size because
-    # The quiz evaluator times out after 13s of CPU time
+    # Reduce the sample size to train quickl for comparison
     #sample_size = 500
     #cars = cars[0:sample_size]
     #notcars = notcars[0:sample_size]
