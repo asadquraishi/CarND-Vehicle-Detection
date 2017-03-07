@@ -122,7 +122,7 @@ The classifier, `LinearSVC`, was trained in the function `train_classifier` in t
 
 The sliding window search was implemented in the function `find_cars` in the `detection.py` module.
 
-I used the code provided in class where we:
+I modified the code provided in class for the HOG sub-sampling window search:
 
 1. Take the full frame and convert it to a HOG feature set
 2. We then scale the image with the scale parameter passed into the function
