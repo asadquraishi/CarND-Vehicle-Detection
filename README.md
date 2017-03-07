@@ -120,7 +120,26 @@ The classifier, `LinearSVC`, was trained in the function `train_classifier` in t
 
 #### 1\. Describe how (and identify where in your code) you implemented a sliding window search. How did you decide what scales to search and how much to overlap windows?
 
+The sliding window search was implemented in the function `find_cars` in the `detection.py` module.
 
+I used the code provided in class where we:
+1. Take the full frame and convert it to a HOG feature set
+2. We then scale the image with the scale parameter passed into the function
+3. We split the image into channels
+4. Define blocks and steps to take
+5. Loop through the x and y steps (sliding window)
+6. Take a window of the image and a) get the hog features for the window b)resize it to 64x64 pixels (same size as the train data)
+7. Obtain bin_spatial and color_hist features
+8. Combine the features in the same order as when training the classifier
+9. Make a prediction
+10. If the prediction is a car, draw a bounding box and add it to a list of bounding boxes
+
+Some of the key parameters I chose (based on experimentation) are:
+```python
+scale = 1.5
+cells_per_step = 1
+```
+By chosing the above values I was able to capture additional detail and then filter out the associated false positives with a higher threshold (3 in my case).
 
 #### 2\. Show some examples of test images to demonstrate how your pipeline is working. What did you do to optimize the performance of your classifier?
 
@@ -136,11 +155,11 @@ Here's a [link to my video result](./project_video_with_vehicle_detection_3.mp4)
 
 #### 2\. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video. From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions. I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap. I then assumed each blob corresponded to a vehicle. I constructed bounding boxes to cover the area of each blob detected. 
+I used two methods for dealing with false positives, both of which can be found in the `detect_vehicles.py` file:
+1. Keeping a running sum of heatmaps for a certain sized window using the parameter `heatmaps_threshold = 8` which can be found in line 22 in the `detect_vehicles.py` file. This reinforces objects which result in a heatmap frame after frame. Note that although I was planning to implement this, when looking for help I found Stewart DeSoto’s [post](https://carnd-forums.udacity.com/questions/38555139/how-to-integrate-heatmap-over-several-frames) and therefore used a modified version of his solution
+2. Creating a heatmap and then thresholding it to get rid of false positives (lines 40-56 in `detect_vehicles.py`)
 
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
-
-
+Note that the heatmap is obtained from the list of bounding boxes returned by the `find_cars` function.
 
 ---
 
@@ -148,4 +167,6 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 #### 1\. Briefly discuss any problems / issues you faced in your implementation of this project. Where will your pipeline likely fail? What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.
+The pipeline still struggles with the following:
+1. It loses the car once it gets a certain distance from the camera. I tried using multiple scales however this didn't solve the problem. I suspect I may need to add more scaled up images to the training images. I may also be able to use thinner horizontal slices than those I tried, using different scales for each.
+2. It still finds some false positives. I think some of these can be removed by increasing the heatmap threshold and dealing with loss of the car detection by using a vehicles class (which I started) to keep a rolling average of the heatmap over subsequent frames.
