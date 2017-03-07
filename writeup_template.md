@@ -41,6 +41,17 @@ The signature of the function is as follows:
 def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
 ```
 
+This function calls the `get_hog_features` function. As such, it is where the color space is selected. While the function allows the use of a number of colour spaces, Originally,  `YCrCb` and `HLS` and `HSV` were chosen over `RGB`, and `YUV` as they performed the best as is seen below in the SVC accuracy of each:
+
+Channel | RGB | HSV | LUV | YUV | HLS | YCrCb
+--------|-----|-----|-----|-----|-----|------
+0 | 0.945 | 0.995 | 0.935 | 0.925 | 0.965 | 0.955
+1 | 0.925 | 0.925 | 0.975 | 0.975 | 0.945 | 0.965
+2 | 0.925 | 0.935 | 0.945 | 0.915 | 0.875 | 0.925
+ALL | 0.925 | 0.975 | 0.975 | 0.975 | 0.995 | 0.995
+
+However in subsequent tests when dealing with real data and all features, `YCrCb` with 'ALL' channels performed the best in my classifier.
+
 I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
 
 ![alt text][image1]
